@@ -11,6 +11,5 @@ license=('custom')
 package() {
   echo -e "#\!/bin/sh\necho -e 'hello archlinux'" > hello_archlinux
   cd "$srcdir"
-  # -Dm755 添加执行权限
   install -Dm755 * -t "$pkgdir"/usr/bin/
 }
