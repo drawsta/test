@@ -47,7 +47,7 @@ jobs:
       - name: Build packages
         id: added-modified-pkgbuild
         uses: jitterbit/get-changed-files@v1
-        run: |
+      - run: |
           mapfile -d ',' -t added_modified_files < <(printf '%s,' '${{ steps.added-modified-pkgbuild.outputs.added_modified }}')
           for added_modified_file in "${added_modified_files[@]}"; do
             (cd $(dirname ${added_modified_file}) && su aurbot -c "makepkg -s")
