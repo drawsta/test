@@ -1,0 +1,69 @@
+name: Build and Self-hosting AUR packages
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "packages/**/PKGBUILD"
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        CACHE_KEY: [aurbuild]
+        CACHE_DIR: [~aurbot/.cache/pkg]
+        REPO_NAME: [drawsta]
+        PACKAGES: [~aurbot/.cache/pkg/*.pkg.tar.*~*.sig]
+
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+
+    steps:
+      - name: Cache package
+        id: cache-package
+        uses: actions/cache@v2
+        with:
+          path: ${{ matrix.CACHE_DIR }}
+          key: ${{ runner.os }}-${{ matrix.CACHE_KEY }}
+
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Import GPG key
+        id: import-gpg
+        uses: crazy-max/ghaction-import-gpg@v3
+        with:
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Prepare Arch Linux
+        run: |
+          bash scripts/prepare-archlinux.sh
+
+      - name: Build packages
+        id: added-modified-pkgbuild
+        uses: jitterbit/get-changed-files@v1
+        run: |
+          mapfile -d ',' -t added_modified_files < <(printf '%s,' '${{ steps.added-modified-pkgbuild.outputs.added_modified }}')
+          for added_modified_file in "${added_modified_files[@]}"; do
+            (cd $(dirname ${added_modified_file}) && su aurbot -c "makepkg -s")
+          done
+
+      - name: Build repo
+        run: |
+          su aurbot -c "repo-add -s -k $GPGKEY ${{ matrix.CACHE_DIR }}/${{ matrix.REPO_NAME }}.db.tar.gz (${{ matrix.PACKAGES }})"
+
+      - name: Deploy repo
+        uses: AEnterprise/rsync-deploy@v1.0
+        env:
+          DEPLOY_KEY: ${{ secrets.SERVER_SSH_KEY }}
+          ARGS: "-a -v -z --delete"
+          SERVER_PORT: ${{ secrets.SERVER_PORT }}
+          FOLDER: ${{ matrix.CACHE_DIR }}
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+          USERNAME: ${{ secrets.USERNAME }}
+          SERVER_DESTINATION: ${{ secrets.SERVER_DESTINATION }}
