@@ -1,0 +1,16 @@
+# Maintainer: drawsta
+
+author=drawsta
+pkgname=hello_archlinux
+pkgver=20200620
+pkgrel=1
+pkgdesc="My first package."
+arch=('any')
+license=('custom')
+
+package() {
+  echo -e "#\!/bin/sh\necho -e 'hello archlinux'" > hello_archlinux
+  cd "$srcdir"
+  # -Dm755 添加执行权限
+  install -Dm755 * -t "$pkgdir"/usr/bin/
+}
