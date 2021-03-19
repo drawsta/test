@@ -3,7 +3,7 @@ name: Build and Self-hosting AUR packages
 on:
   push:
     branches:
-      - master
+      - main
     paths:
       - "packages/**/PKGBUILD"
 
